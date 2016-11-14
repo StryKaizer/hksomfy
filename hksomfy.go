@@ -6,7 +6,7 @@ import (
 
 	"github.com/brutella/hc"
 	"github.com/brutella/hc/accessory"
-	"github.com/strykaizer/somfy/somfaccessory"
+	"github.com/strykaizer/hksomfy/somfaccessory"
 )
 
 func main() {
