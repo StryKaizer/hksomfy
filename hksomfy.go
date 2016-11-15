@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"net"
+	"os"
 	"strconv"
 	"time"
 
@@ -29,12 +31,8 @@ func main() {
 		Manufacturer: "Jimmy Henderickx",
 	}
 
+	triggerSomfyCommand("down")
 	acc = somfaccessory.NewWindowCovering(info)
-
-	acc.WindowCovering.CurrentPosition.OnValueRemoteUpdate(func(current int) {
-		log.Println("CurrentPosition = " + strconv.Itoa(current))
-	})
-
 	acc.WindowCovering.TargetPosition.OnValueRemoteUpdate(func(target int) {
 
 		target_position = target
@@ -42,11 +40,19 @@ func main() {
 		if current_position < target_position {
 			log.Println("Triggering UP. Target: " + strconv.Itoa(target_position))
 			// TODO: Trigger up here
+			triggerSomfyCommand("up")
+			triggerSomfyCommand("up")
+			triggerSomfyCommand("up")
+			triggerSomfyCommand("up")
 			target_direction = "up"
 		}
 		if current_position > target_position {
 			log.Println("Triggering DOWN. Target: " + strconv.Itoa(target_position))
 			// TODO: Trigger down here
+			triggerSomfyCommand("down")
+			triggerSomfyCommand("down")
+			triggerSomfyCommand("down")
+			triggerSomfyCommand("down")
 			target_direction = "down"
 		}
 
@@ -68,6 +74,36 @@ func main() {
 	t.Start()
 }
 
+func triggerSomfyCommand(command string) {
+	var command_code int
+	switch {
+	case command == "up":
+		command_code = 2
+	case command == "down":
+		command_code = 4
+	case command == "halt":
+		command_code = 1
+	}
+	conn, err := net.Dial("tcp", "192.168.1.180:5000")
+	reply := make([]byte, 1024)
+	strEcho := "{\"action\": \"send\", \"code\": {\"protocol\": [\"somfy_rts\"],	\"address\": 2235423, \"command_code\": " + strconv.Itoa(command_code) + "}}"
+	_, err = conn.Write([]byte(strEcho))
+	if err != nil {
+		println("Write to server failed:", err.Error())
+		os.Exit(1)
+	}
+
+	println("write to server = ", strEcho)
+
+	reply = make([]byte, 1024)
+
+	_, err = conn.Read(reply)
+	if err != nil {
+		println("Write to server failed:", err.Error())
+		os.Exit(1)
+	}
+}
+
 func updateCurrentPosition() {
 	time.Sleep(time.Millisecond * step_in_ms)
 	current_position := acc.WindowCovering.CurrentPosition.GetValue()
@@ -86,6 +122,10 @@ func updateCurrentPosition() {
 		is_moving = false
 		if new_position > 0 && new_position < 100 {
 			// TODO: Trigger halt here.
+			triggerSomfyCommand("halt")
+			triggerSomfyCommand("halt")
+			triggerSomfyCommand("halt")
+			triggerSomfyCommand("halt")
 			log.Println("Triggering HALT")
 		}
 	}
