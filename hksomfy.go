@@ -1,9 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
-	"net"
 	"os"
+	"os/exec"
 	"strconv"
 	"time"
 
@@ -68,41 +69,54 @@ func main() {
 }
 
 func triggerSomfyCommand(command string) {
-	var command_code int
+	// var command_code int
+	var pilight_param string
 	switch {
 	case command == "up":
 		log.Println("Triggering UP")
 		target_direction = "up"
-		command_code = 2
+		// command_code = 2
+		pilight_param = "-t"
 	case command == "down":
 		log.Println("Triggering DOWN")
 		target_direction = "down"
-		command_code = 4
+		// command_code = 4
+		pilight_param = "-f"
 	case command == "halt":
 		log.Println("Triggering HALT")
-		command_code = 1
+		// command_code = 1
+		pilight_param = "-m"
 	}
 
 	i := 1
 	for i <= pilight_repeat {
-		conn, err := net.Dial("tcp", pilight_host+":"+pilight_port)
-		reply := make([]byte, 1024)
-		strEcho := "{\"action\": \"send\", \"code\": {\"protocol\": [\"somfy_rts\"],	\"address\": 2235423, \"command_code\": " + strconv.Itoa(command_code) + "}}"
-		_, err = conn.Write([]byte(strEcho))
-		if err != nil {
-			log.Println("Write to server failed:", err.Error())
-			os.Exit(1)
-		}
-		log.Println("Write to server")
-		time.Sleep(time.Millisecond)
-		reply = make([]byte, 1024)
 
-		_, err = conn.Read(reply)
-		if err != nil {
-			log.Println("Write to server failed:", err.Error())
+		cmd := "pilight-send"
+		args := []string{"-p", "50%", "somfy_rts", "-a", "2235423", pilight_param}
+		if err := exec.Command(cmd, args...).Run(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		log.Println("Read reply")
+		fmt.Println("Successfully send pilight command")
+
+		// conn, err := net.Dial("tcp", pilight_host+":"+pilight_port)
+		// reply := make([]byte, 1024)
+		// strEcho := "{\"action\": \"send\", \"code\": {\"protocol\": [\"somfy_rts\"],	\"address\": 2235423, \"command_code\": " + strconv.Itoa(command_code) + "}}"
+		// _, err = conn.Write([]byte(strEcho))
+		// if err != nil {
+		// 	log.Println("Write to server failed:", err.Error())
+		// 	os.Exit(1)
+		// }
+		// log.Println("Write to server")
+		// time.Sleep(time.Millisecond)
+		// reply = make([]byte, 1024)
+		//
+		// _, err = conn.Read(reply)
+		// if err != nil {
+		// 	log.Println("Write to server failed:", err.Error())
+		// 	os.Exit(1)
+		// }
+		// log.Println("Read reply")
 		time.Sleep(time.Millisecond)
 		i += 1
 	}
