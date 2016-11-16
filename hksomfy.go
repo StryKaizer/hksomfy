@@ -2,8 +2,6 @@ package main
 
 import (
 	"log"
-	"net"
-	"os"
 	"strconv"
 	"time"
 
@@ -83,26 +81,27 @@ func triggerSomfyCommand(command string) {
 		command_code = 1
 	}
 
-	i := 1
-	for i <= pilight_repeat {
-		conn, err := net.Dial("tcp", pilight_host+":"+pilight_port)
-		reply := make([]byte, 1024)
-		strEcho := "{\"action\": \"send\", \"code\": {\"protocol\": [\"somfy_rts\"],	\"address\": 2235423, \"command_code\": " + strconv.Itoa(command_code) + "}}"
-		_, err = conn.Write([]byte(strEcho))
-		if err != nil {
-			println("Write to server failed:", err.Error())
-			os.Exit(1)
-		}
-
-		reply = make([]byte, 1024)
-
-		_, err = conn.Read(reply)
-		if err != nil {
-			println("Write to server failed:", err.Error())
-			os.Exit(1)
-		}
-		i += 1
-	}
+	log.Println(command_code)
+	// i := 1
+	// for i <= pilight_repeat {
+	// 	conn, err := net.Dial("tcp", pilight_host+":"+pilight_port)
+	// 	reply := make([]byte, 1024)
+	// 	strEcho := "{\"action\": \"send\", \"code\": {\"protocol\": [\"somfy_rts\"],	\"address\": 2235423, \"command_code\": " + strconv.Itoa(command_code) + "}}"
+	// 	_, err = conn.Write([]byte(strEcho))
+	// 	if err != nil {
+	// 		println("Write to server failed:", err.Error())
+	// 		os.Exit(1)
+	// 	}
+	//
+	// 	reply = make([]byte, 1024)
+	//
+	// 	_, err = conn.Read(reply)
+	// 	if err != nil {
+	// 		println("Write to server failed:", err.Error())
+	// 		os.Exit(1)
+	// 	}
+	// 	i += 1
+	// }
 
 }
 
