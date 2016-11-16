@@ -92,7 +92,7 @@ func triggerSomfyCommand(command string) {
 	for i <= pilight_repeat {
 
 		cmd := "pilight-send"
-		args := []string{"-p", "50%", "somfy_rts", "-a", "2235423", pilight_param}
+		args := []string{"-p", "somfy_rts", "-a", "2235423", pilight_param}
 		if err := exec.Command(cmd, args...).Run(); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
