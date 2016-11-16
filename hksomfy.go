@@ -13,11 +13,11 @@ import (
 )
 
 // CONFIG
-var step_in_ms time.Duration = 184        // Miliseconds per step, x 100 is entire run (From closed to open)
-var pin string = "11111111"               // Pincode used in Homekit
-var pilight_host string = "192.168.1.180" // Hostname pilight daemon
-var pilight_port string = "5000"          // Port pilight daemon
-var pilight_repeat int = 4                // Times a command is executed, for less stable connections support.
+var step_in_ms time.Duration = 184    // Miliseconds per step, x 100 is entire run (From closed to open)
+var pin string = "11111111"           // Pincode used in Homekit
+var pilight_host string = "localhost" // Hostname pilight daemon
+var pilight_port string = "5000"      // Port pilight daemon
+var pilight_repeat int = 4            // Times a command is executed, for less stable connections support.
 
 // VARS
 var target_position int
@@ -34,7 +34,7 @@ func main() {
 		Manufacturer: "Jimmy Henderickx",
 	}
 
-	go triggerSomfyCommand("down")
+	triggerSomfyCommand("down")
 	acc = somfaccessory.NewWindowCovering(info)
 	acc.WindowCovering.TargetPosition.OnValueRemoteUpdate(func(target int) {
 
@@ -42,11 +42,11 @@ func main() {
 		current_position := acc.WindowCovering.CurrentPosition.GetValue()
 		if current_position < target_position {
 			log.Println("New target: " + strconv.Itoa(target_position))
-			go triggerSomfyCommand("up")
+			triggerSomfyCommand("up")
 		}
 		if current_position > target_position {
 			log.Println("New target: " + strconv.Itoa(target_position))
-			go triggerSomfyCommand("down")
+			triggerSomfyCommand("down")
 		}
 
 		if is_moving == false {
@@ -90,17 +90,20 @@ func triggerSomfyCommand(command string) {
 		strEcho := "{\"action\": \"send\", \"code\": {\"protocol\": [\"somfy_rts\"],	\"address\": 2235423, \"command_code\": " + strconv.Itoa(command_code) + "}}"
 		_, err = conn.Write([]byte(strEcho))
 		if err != nil {
-			println("Write to server failed:", err.Error())
+			log.Println("Write to server failed:", err.Error())
 			os.Exit(1)
 		}
-
+		log.Println("Write to server")
+		time.Sleep(time.Millisecond)
 		reply = make([]byte, 1024)
 
 		_, err = conn.Read(reply)
 		if err != nil {
-			println("Write to server failed:", err.Error())
+			log.Println("Write to server failed:", err.Error())
 			os.Exit(1)
 		}
+		log.Println("Read reply")
+		time.Sleep(time.Millisecond)
 		i += 1
 	}
 
@@ -123,7 +126,7 @@ func updateCurrentPosition() {
 	} else {
 		is_moving = false
 		if new_position > 0 && new_position < 100 {
-			go triggerSomfyCommand("halt")
+			triggerSomfyCommand("halt")
 		}
 	}
 
