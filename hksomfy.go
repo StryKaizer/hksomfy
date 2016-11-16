@@ -13,8 +13,11 @@ import (
 )
 
 // CONFIG
-var step_in_ms time.Duration = 184 // miliseconds per step, x 100 is entire run
-var pin int = 11111111
+var step_in_ms time.Duration = 184        // Miliseconds per step, x 100 is entire run (From closed to open)
+var pin string = "11111111"               // Pincode used in Homekit
+var pilight_host string = "192.168.1.180" // Hostname pilight daemon
+var pilight_port string = "5000"          // Port pilight daemon
+var pilight_repeat int = 4                // Times a command is executed, for less stable connections support.
 
 // VARS
 var target_position int
@@ -25,7 +28,7 @@ var is_moving bool = false
 func main() {
 
 	info := accessory.Info{
-		Name:         "Blinds", // Do not use spaces here, get transformed to _.
+		Name:         "Blinds",
 		SerialNumber: "1.0",
 		Model:        "Somfy RTS",
 		Manufacturer: "Jimmy Henderickx",
@@ -38,22 +41,12 @@ func main() {
 		target_position = target
 		current_position := acc.WindowCovering.CurrentPosition.GetValue()
 		if current_position < target_position {
-			log.Println("Triggering UP. Target: " + strconv.Itoa(target_position))
-			// TODO: Trigger up here
+			log.Println("New target: " + strconv.Itoa(target_position))
 			triggerSomfyCommand("up")
-			triggerSomfyCommand("up")
-			triggerSomfyCommand("up")
-			triggerSomfyCommand("up")
-			target_direction = "up"
 		}
 		if current_position > target_position {
-			log.Println("Triggering DOWN. Target: " + strconv.Itoa(target_position))
-			// TODO: Trigger down here
+			log.Println("New target: " + strconv.Itoa(target_position))
 			triggerSomfyCommand("down")
-			triggerSomfyCommand("down")
-			triggerSomfyCommand("down")
-			triggerSomfyCommand("down")
-			target_direction = "down"
 		}
 
 		if is_moving == false {
@@ -62,7 +55,7 @@ func main() {
 		}
 	})
 
-	t, err := hc.NewIPTransport(hc.Config{Pin: "11111111"}, acc.Accessory)
+	t, err := hc.NewIPTransport(hc.Config{Pin: pin}, acc.Accessory)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -78,30 +71,39 @@ func triggerSomfyCommand(command string) {
 	var command_code int
 	switch {
 	case command == "up":
+		log.Println("Triggering UP")
+		target_direction = "up"
 		command_code = 2
 	case command == "down":
+		log.Println("Triggering DOWN")
+		target_direction = "down"
 		command_code = 4
 	case command == "halt":
+		log.Println("Triggering HALT")
 		command_code = 1
 	}
-	conn, err := net.Dial("tcp", "192.168.1.180:5000")
-	reply := make([]byte, 1024)
-	strEcho := "{\"action\": \"send\", \"code\": {\"protocol\": [\"somfy_rts\"],	\"address\": 2235423, \"command_code\": " + strconv.Itoa(command_code) + "}}"
-	_, err = conn.Write([]byte(strEcho))
-	if err != nil {
-		println("Write to server failed:", err.Error())
-		os.Exit(1)
+
+	i := 1
+	for i <= pilight_repeat {
+		conn, err := net.Dial("tcp", pilight_host+":"+pilight_port)
+		reply := make([]byte, 1024)
+		strEcho := "{\"action\": \"send\", \"code\": {\"protocol\": [\"somfy_rts\"],	\"address\": 2235423, \"command_code\": " + strconv.Itoa(command_code) + "}}"
+		_, err = conn.Write([]byte(strEcho))
+		if err != nil {
+			println("Write to server failed:", err.Error())
+			os.Exit(1)
+		}
+
+		reply = make([]byte, 1024)
+
+		_, err = conn.Read(reply)
+		if err != nil {
+			println("Write to server failed:", err.Error())
+			os.Exit(1)
+		}
+		i += 1
 	}
 
-	println("write to server = ", strEcho)
-
-	reply = make([]byte, 1024)
-
-	_, err = conn.Read(reply)
-	if err != nil {
-		println("Write to server failed:", err.Error())
-		os.Exit(1)
-	}
 }
 
 func updateCurrentPosition() {
@@ -121,12 +123,7 @@ func updateCurrentPosition() {
 	} else {
 		is_moving = false
 		if new_position > 0 && new_position < 100 {
-			// TODO: Trigger halt here.
 			triggerSomfyCommand("halt")
-			triggerSomfyCommand("halt")
-			triggerSomfyCommand("halt")
-			triggerSomfyCommand("halt")
-			log.Println("Triggering HALT")
 		}
 	}
 
