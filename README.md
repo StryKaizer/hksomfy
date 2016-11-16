@@ -1,6 +1,6 @@
 # hksomfy
 
-Somfy RTS implementation using [HomeControl](https://github.com/brutella/hc).
+Somfy RTS Blinds control using [HomeControl](https://github.com/brutella/hc) and [PiLight](www.pilight.org).
 
 # Installation
 
