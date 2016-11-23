@@ -8,24 +8,33 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/brutella/hc"
 	"github.com/brutella/hc/accessory"
 	"github.com/strykaizer/hksomfy/somfaccessory"
 )
 
-// CONFIG
-var step_in_ms time.Duration = 184 // Miliseconds per step, x 100 is entire run (From closed to open)
-var pin string = "11111111"        // Pincode used in Homekit
-var somfy_address = "2235423"      // Somfy RTS control address
-var pilight_repeat int = 2         // Times a command is executed, for less stable connections support.
+type tomlConfig struct {
+	step_in_ms     time.Duration
+	pin            string
+	somfy_address  string
+	pilight_repeat int
+}
+
 
 // VARS
 var target_position int
 var target_direction string
 var acc *somfaccessory.WindowCovering
 var is_moving bool = false
+var config tomlConfig
 
 func main() {
+
+	if _, err := toml.DecodeFile("config.toml", &config); err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	info := accessory.Info{
 		Name:         "Blinds",
@@ -55,7 +64,7 @@ func main() {
 		}
 	})
 
-	t, err := hc.NewIPTransport(hc.Config{Pin: pin}, acc.Accessory)
+	t, err := hc.NewIPTransport(hc.Config{Pin: config.pin}, acc.Accessory)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -85,9 +94,9 @@ func triggerSomfyCommand(command string) {
 	}
 
 	i := 1
-	for i <= pilight_repeat {
+	for i <= config.pilight_repeat {
 		cmd := "pilight-send"
-		args := []string{"-p", "somfy_rts", "-a", somfy_address, pilight_param}
+		args := []string{"-p", "somfy_rts", "-a", config.somfy_address, pilight_param}
 		if err := exec.Command(cmd, args...).Run(); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -99,7 +108,7 @@ func triggerSomfyCommand(command string) {
 }
 
 func updateCurrentPosition() {
-	time.Sleep(time.Millisecond * step_in_ms)
+	time.Sleep(time.Millisecond * config.step_in_ms)
 	current_position := acc.WindowCovering.CurrentPosition.GetValue()
 	var new_position int
 	if target_direction == "up" {

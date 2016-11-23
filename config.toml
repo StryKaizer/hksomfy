@@ -1,0 +1,14 @@
+# HKSOMFY CONFIGURATION
+
+
+# Miliseconds per step, x 100 is entire run (From closed to open)
+step_in_ms = 184
+
+# Pincode used in Homekit
+pin = "11111111"
+
+# Somfy RTS control address
+somfy_address = "2235423"
+
+# Times a command is executed, for less stable connections support.
+pilight_repeat = 2
