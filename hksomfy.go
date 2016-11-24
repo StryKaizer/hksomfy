@@ -15,10 +15,15 @@ import (
 )
 
 type tomlConfig struct {
-	step_in_ms     time.Duration
-	pin            string
-	somfy_address  string
-	pilight_repeat int
+	StepsInMs time.Duration
+	Pin       string
+	Repeat    int
+	Blinds    map[string]blindConfig
+}
+
+type blindConfig struct {
+	SomfyAddress string
+	Label        string
 }
 
 
@@ -36,14 +41,25 @@ func main() {
 		return
 	}
 
+	log.Println(config.Pin)
+	for blind_name, blind_config := range config.Blinds {
+		log.Println(blind_name)
+		log.Println(blind_config)
+		// TODO: trigger all but last one with go prefix
+		initBlind(blind_config)
+	}
+
+}
+
+func initBlind(blind_config blindConfig) {
 	info := accessory.Info{
-		Name:         "Blinds",
+		Name:         blind_config.Label,
 		SerialNumber: "1.1",
 		Model:        "Somfy RTS",
 		Manufacturer: "Jimmy Henderickx",
 	}
 
-	triggerSomfyCommand("down")
+	triggerSomfyCommand("down", blind_config)
 	acc = somfaccessory.NewWindowCovering(info)
 	acc.WindowCovering.TargetPosition.OnValueRemoteUpdate(func(target int) {
 
@@ -51,20 +67,21 @@ func main() {
 		current_position := acc.WindowCovering.CurrentPosition.GetValue()
 		if current_position < target_position {
 			log.Println("New target: " + strconv.Itoa(target_position))
-			triggerSomfyCommand("up")
+			triggerSomfyCommand("up", blind_config)
 		}
 		if current_position > target_position {
 			log.Println("New target: " + strconv.Itoa(target_position))
-			triggerSomfyCommand("down")
+			triggerSomfyCommand("down", blind_config)
 		}
 
 		if is_moving == false {
 			is_moving = true
-			go updateCurrentPosition()
+			go updateCurrentPosition(blind_config)
 		}
 	})
 
-	t, err := hc.NewIPTransport(hc.Config{Pin: config.pin}, acc.Accessory)
+	log.Println(blind_config.SomfyAddress)
+	t, err := hc.NewIPTransport(hc.Config{Pin: config.Pin}, acc.Accessory)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -74,29 +91,30 @@ func main() {
 	})
 
 	t.Start()
+
 }
 
-func triggerSomfyCommand(command string) {
+func triggerSomfyCommand(command string, blind_config blindConfig) {
 	// var command_code int
 	var pilight_param string
 	switch {
 	case command == "up":
-		log.Println("Triggering UP")
+		log.Println("Triggering UP for " + blind_config.Label)
 		target_direction = "up"
 		pilight_param = "-t"
 	case command == "down":
-		log.Println("Triggering DOWN")
+		log.Println("Triggering DOWN for " + blind_config.Label)
 		target_direction = "down"
 		pilight_param = "-f"
 	case command == "halt":
-		log.Println("Triggering HALT")
+		log.Println("Triggering HALT for " + blind_config.Label)
 		pilight_param = "-m"
 	}
 
 	i := 1
-	for i <= config.pilight_repeat {
+	for i <= config.Repeat {
 		cmd := "pilight-send"
-		args := []string{"-p", "somfy_rts", "-a", config.somfy_address, pilight_param}
+		args := []string{"-p", "somfy_rts", "-a", blind_config.SomfyAddress, pilight_param}
 		if err := exec.Command(cmd, args...).Run(); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -107,8 +125,8 @@ func triggerSomfyCommand(command string) {
 
 }
 
-func updateCurrentPosition() {
-	time.Sleep(time.Millisecond * config.step_in_ms)
+func updateCurrentPosition(blind_config blindConfig) {
+	time.Sleep(time.Millisecond * config.StepsInMs)
 	current_position := acc.WindowCovering.CurrentPosition.GetValue()
 	var new_position int
 	if target_direction == "up" {
@@ -120,11 +138,11 @@ func updateCurrentPosition() {
 	log.Println("Current position: " + strconv.Itoa(new_position))
 
 	if new_position != target_position && new_position > 0 && new_position < 100 {
-		updateCurrentPosition()
+		updateCurrentPosition(blind_config)
 	} else {
 		is_moving = false
 		if new_position > 0 && new_position < 100 {
-			triggerSomfyCommand("halt")
+			triggerSomfyCommand("halt", blind_config)
 		}
 	}
 
