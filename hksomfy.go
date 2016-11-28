@@ -12,6 +12,8 @@ import (
 	"github.com/brutella/hc"
 	"github.com/brutella/hc/accessory"
 	"github.com/strykaizer/hksomfy/somfaccessory"
+	"os/exec"
+	"os"
 )
 
 type tomlConfig struct {
@@ -41,12 +43,19 @@ func main() {
 		return
 	}
 
-	log.Println(config.Pin)
+	number_of_blinds := len(config.Blinds)
+	current_blind := 0
 	for blind_name, blind_config := range config.Blinds {
+		current_blind += 1
 		log.Println(blind_name)
-		log.Println(blind_config)
-		// TODO: trigger all but last one with go prefix
-		initBlind(blind_config)
+		if (current_blind == number_of_blinds) {
+			initBlind(blind_config)
+			log.Println("Laatste")
+		} else {
+			go initBlind(blind_config)
+		}
+
+
 	}
 
 }
