@@ -12,8 +12,6 @@ import (
 	"github.com/brutella/hc"
 	"github.com/brutella/hc/accessory"
 	"github.com/strykaizer/hksomfy/somfaccessory"
-	"os/exec"
-	"os"
 )
 
 type tomlConfig struct {
