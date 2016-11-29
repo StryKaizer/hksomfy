@@ -1,0 +1,25 @@
+# HK Somfy configuration
+
+# Miliseconds per step, x 100 is entire run (From closed to open)
+step_in_ms = 184
+
+# Pincode used to add device in homekit
+pin = "11111111"
+
+# Times a command is executed, for less stable connections support.
+repeat = 2
+
+# There can be multiple blinds defined below
+[blinds]
+
+  [blinds.bedroom]
+  # Somfy RTS control address
+  somfy_address = "1234567"
+  # Label as shown in homekit (can be changed in homekit later)
+  label = "Bedroom"
+
+  [blinds.livingroom]
+  somfy_address = "1234568"
+  label = "Living room"
+
+
