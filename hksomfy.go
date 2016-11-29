@@ -15,14 +15,14 @@ import (
 )
 
 type tomlConfig struct {
-	StepsInMs time.Duration
+	Steps_In_Ms time.Duration
 	Pin       string
 	Repeat    int
 	Blinds    map[string]blindConfig
 }
 
 type blindConfig struct {
-	SomfyAddress string
+	Somfy_Address string
 	Label        string
 }
 
@@ -44,16 +44,28 @@ func main() {
 		return
 	}
 
+	log.Println("GLOBAL CONFIGURATION")
+	log.Println("--------------------")
+	log.Println("Steps in ms: " + config.Steps_In_Ms.String())
+	log.Println("Pincode homekit: " + config.Pin)
+	log.Println("Repeat commands: " + strconv.Itoa(config.Repeat))
+	log.Println("")
+	log.Println("BLINDS CONFIGURATION")
+	log.Println("--------------------")
 	number_of_blinds := len(config.Blinds)
 	current_blind := 0
 	for index := range config.Blinds {
+		log.Println("Label: " +config.Blinds[index].Label)
+		log.Println("Somfy address: " +config.Blinds[index].Somfy_Address)
+
 		current_blind += 1
 		if (current_blind == number_of_blinds) {
+			log.Println("")
 			initBlind(config.Blinds[index])
-			log.Println("Laatste")
 		} else {
 			go initBlind(config.Blinds[index])
 		}
+
 
 	}
 
@@ -88,7 +100,7 @@ func initBlind(blind_config blindConfig) {
 		}
 	})
 
-	log.Println(blind_config.SomfyAddress)
+	log.Println(blind_config.Somfy_Address)
 	t, err := hc.NewIPTransport(hc.Config{Pin: config.Pin}, acc.Accessory)
 	if err != nil {
 		log.Fatal(err)
@@ -122,7 +134,7 @@ func triggerSomfyCommand(command string, blind_config blindConfig) {
 	i := 1
 	for i <= config.Repeat {
 		cmd := "pilight-send"
-		args := []string{"-p", "somfy_rts", "-a", blind_config.SomfyAddress, pilight_param}
+		args := []string{"-p", "somfy_rts", "-a", blind_config.Somfy_Address, pilight_param}
 		if err := exec.Command(cmd, args...).Run(); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -134,7 +146,7 @@ func triggerSomfyCommand(command string, blind_config blindConfig) {
 }
 
 func updateCurrentPosition(blind_config blindConfig) {
-	time.Sleep(time.Millisecond * config.StepsInMs)
+	time.Sleep(time.Millisecond * config.Steps_In_Ms)
 	current_position := acc.WindowCovering.CurrentPosition.GetValue()
 	var new_position int
 	if target_direction == "up" {

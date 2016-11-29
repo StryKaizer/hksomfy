@@ -1,7 +1,7 @@
 # HK Somfy configuration
 
 # Miliseconds per step, x 100 is entire run (From closed to open)
-step_in_ms = 184
+steps_in_ms = 184
 
 # Pincode used to add device in homekit
 pin = "11111111"
