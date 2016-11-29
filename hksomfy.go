@@ -11,7 +11,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/brutella/hc"
 	"github.com/brutella/hc/accessory"
-	"github.com/strykaizer/hksomfy/somfaccessory"
+	"github.com/brutella/hc/service"
 )
 
 type tomlConfig struct {
@@ -26,11 +26,14 @@ type blindConfig struct {
 	Label        string
 }
 
+type WindowCovering struct {
+	Accessory      *accessory.Accessory
+	WindowCovering *service.WindowCovering
+}
 
-// VARS
 var target_position int
 var target_direction string
-var acc *somfaccessory.WindowCovering
+var acc *WindowCovering
 var is_moving bool = false
 var config tomlConfig
 
@@ -43,16 +46,14 @@ func main() {
 
 	number_of_blinds := len(config.Blinds)
 	current_blind := 0
-	for blind_name, blind_config := range config.Blinds {
+	for index := range config.Blinds {
 		current_blind += 1
-		log.Println(blind_name)
 		if (current_blind == number_of_blinds) {
-			initBlind(blind_config)
+			initBlind(config.Blinds[index])
 			log.Println("Laatste")
 		} else {
-			go initBlind(blind_config)
+			go initBlind(config.Blinds[index])
 		}
-
 
 	}
 
@@ -67,7 +68,7 @@ func initBlind(blind_config blindConfig) {
 	}
 
 	triggerSomfyCommand("down", blind_config)
-	acc = somfaccessory.NewWindowCovering(info)
+	acc = NewWindowCovering(info)
 	acc.WindowCovering.TargetPosition.OnValueRemoteUpdate(func(target int) {
 
 		target_position = target
@@ -153,4 +154,13 @@ func updateCurrentPosition(blind_config blindConfig) {
 		}
 	}
 
+}
+
+func NewWindowCovering(info accessory.Info) *WindowCovering {
+	acc := WindowCovering{}
+	acc.Accessory = accessory.New(info, accessory.TypeWindowCovering)
+	acc.WindowCovering = service.NewWindowCovering()
+	acc.WindowCovering.CurrentPosition.SetValue(0)
+	acc.Accessory.AddService(acc.WindowCovering.Service)
+	return &acc
 }
